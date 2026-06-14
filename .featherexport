@@ -1,0 +1,4 @@
+# DevUtils export exclusions
+.github/
+.git/
+README.md
