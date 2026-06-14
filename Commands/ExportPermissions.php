@@ -3,29 +3,16 @@
 /*
  * This file is part of FeatherPanel.
  *
- * MIT License
+ * Copyright (C) 2025 MythicalSystems Studios
+ * Copyright (C) 2025 FeatherPanel Contributors
+ * Copyright (C) 2025 Cassian Gherman (aka NaysKutzu)
  *
- * Copyright (c) 2025 MythicalSystems
- * Copyright (c) 2025 Cassian Gherman (NaysKutzu)
- * Copyright (c) 2018 - 2021 Dane Everitt <dane@daneeveritt.com> and Contributors
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * See the LICENSE file or <https://www.gnu.org/licenses/>.
  */
 
 namespace App\Addons\devutils\Commands;
@@ -103,13 +90,24 @@ class ExportPermissions implements CommandBuilder
             $app->send('&c&l✗ Failed to write PHP file: ' . $phpFile);
         }
 
-        // Generate TypeScript file
+        // Generate TypeScript file (legacy frontend, only if present)
         $tsContent = self::generateTypeScriptFile($permissionNodes, $permissionMetadata);
         $tsFile = $dir . '/frontend/src/lib/permissions.ts';
-        if (file_put_contents($tsFile, $tsContent)) {
-            $app->send('&a&l✓ Generated TypeScript file: ' . $tsFile);
+        if (is_dir(dirname($tsFile))) {
+            if (file_put_contents($tsFile, $tsContent)) {
+                $app->send('&a&l✓ Generated TypeScript file: ' . $tsFile);
+            } else {
+                $app->send('&c&l✗ Failed to write TypeScript file: ' . $tsFile);
+            }
+        }
+
+        // Generate New Frontend TypeScript Files
+        $tsNewContent = self::generateTypeScriptFile($permissionNodes, $permissionMetadata);
+        $tsFileNew = $dir . '/frontendv2/src/lib/permissions.ts';
+        if (file_put_contents($tsFileNew, $tsNewContent)) {
+            $app->send('&a&l✓ Generated TypeScript file: ' . $tsFileNew);
         } else {
-            $app->send('&c&l✗ Failed to write TypeScript file: ' . $tsFile);
+            $app->send('&c&l✗ Failed to write TypeScript file: ' . $tsFileNew);
         }
 
         // Generate README documentation
@@ -132,7 +130,10 @@ class ExportPermissions implements CommandBuilder
         $app->send('&a&l✓ Export completed successfully!');
         $app->send('&7Generated files:');
         $app->send('&8├─ &aPHP: &f' . $phpFile);
-        $app->send('&8├─ &bTypeScript: &f' . $tsFile);
+        if (is_dir(dirname($tsFile))) {
+            $app->send('&8├─ &bTypeScript: &f' . $tsFile);
+        }
+        $app->send('&8├─ &bTypeScript &a(New)&b: ' . $tsFileNew);
         $app->send('&8└─ &eREADME: &f' . $readmeFile);
         $app->send('');
         $app->send('&7Statistics:');
