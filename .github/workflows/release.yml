@@ -14,10 +14,6 @@ on:
           - production
           - dev
         default: production
-      changelog:
-        description: Release notes. Leave empty to auto-generate from commits since the last tag.
-        required: false
-        default: ""
 
 permissions:
   contents: write
@@ -28,8 +24,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Validate secrets
         shell: bash
@@ -80,31 +74,6 @@ jobs:
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "Updated conf.yml: ${current} -> ${ver}"
 
-      - name: Generate changelog
-        id: changelog
-        shell: bash
-        run: |
-          outfile="${RUNNER_TEMP}/changelog.md"
-          if [ -n "${{ inputs.changelog }}" ]; then
-            printf '%s\n' "${{ inputs.changelog }}" > "${outfile}"
-          else
-            prev="$(git describe --tags --abbrev=0 2>/dev/null || true)"
-            if [ -n "${prev}" ]; then
-              git log "${prev}..HEAD" --pretty=format:'- %s (%h)' --no-merges > "${outfile}" || true
-            else
-              git log --pretty=format:'- %s (%h)' --no-merges -30 > "${outfile}" || true
-            fi
-            if [ ! -s "${outfile}" ]; then
-              printf 'Release %s\n' "${{ steps.version.outputs.version }}" > "${outfile}"
-            fi
-          fi
-          {
-            echo 'text<<CHANGELOG_EOF'
-            cat "${outfile}"
-            echo 'CHANGELOG_EOF'
-          } >> "$GITHUB_OUTPUT"
-          echo "file=${outfile}" >> "$GITHUB_OUTPUT"
-
       - name: Build .fpa
         id: build
         uses: MythicalLTD/.github/actions/build-fpa@v1
@@ -120,7 +89,7 @@ jobs:
           product_id: ${{ secrets.MYTHIC_PRODUCT_ID }}
           environment: ${{ inputs.environment }}
           version: ${{ steps.version.outputs.version }}
-          changelog: ${{ steps.changelog.outputs.text }}
+          changelog: Updated to latest plugin version
           file_path: ${{ steps.build.outputs.fpa_file }}
           title: "${{ steps.build.outputs.plugin_identifier }} ${{ steps.version.outputs.version }}"
           release_token: ${{ secrets.MYTHIC_RELEASE_TOKEN }}
@@ -134,13 +103,12 @@ jobs:
           ver="${{ steps.version.outputs.version }}"
           tag="v${ver}"
           fpa="${{ steps.build.outputs.fpa_file }}"
-          notes="${{ steps.changelog.outputs.file }}"
 
           if gh release view "${tag}" >/dev/null 2>&1; then
             gh release upload "${tag}" "${fpa}" --clobber
-            gh release edit "${tag}" --notes-file "${notes}"
+            gh release edit "${tag}" --notes "Updated to latest plugin version"
           else
-            gh release create "${tag}" "${fpa}" --title "${tag}" --notes-file "${notes}"
+            gh release create "${tag}" "${fpa}" --title "${tag}" --notes "Updated to latest plugin version"
           fi
 
       - name: Commit version bump
