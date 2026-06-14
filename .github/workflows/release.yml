@@ -18,7 +18,7 @@ on:
         description: Release notes. Leave empty to auto-generate from commits since the last tag.
         required: false
         default: ""
-
+   
 permissions:
   contents: write
 
