@@ -65,6 +65,21 @@ jobs:
           fi
           echo "version=${ver}" >> "$GITHUB_OUTPUT"
 
+      - name: Sync conf.yml version
+        id: sync_conf
+        shell: bash
+        run: |
+          ver="${{ steps.version.outputs.version }}"
+          current="$(grep -E '^\s*version:' conf.yml | head -1 | sed -E 's/^[[:space:]]*version:[[:space:]]*//; s/["'\'']//g')"
+          if [ "${current}" = "${ver}" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "conf.yml already at ${ver}"
+            exit 0
+          fi
+          sed -i -E "s/^([[:space:]]*version:[[:space:]]*).*/\1${ver}/" conf.yml
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "Updated conf.yml: ${current} -> ${ver}"
+
       - name: Generate changelog
         id: changelog
         shell: bash
@@ -127,6 +142,18 @@ jobs:
           else
             gh release create "${tag}" "${fpa}" --title "${tag}" --notes-file "${notes}"
           fi
+
+      - name: Commit version bump
+        if: steps.sync_conf.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add conf.yml
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
+          git push
 
       - name: Release summary
         if: success()
