@@ -4,7 +4,7 @@ plugin:
     description: 'Some helpful utils to help you develop for featherpanel.'
     flags:
         - hasEvents
-    version: 1.0.3
+    version: 1.0.5
     target: v3
     author:
         - NaysKutzu
